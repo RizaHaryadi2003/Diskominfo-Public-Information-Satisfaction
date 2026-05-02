@@ -14,12 +14,15 @@ Endpoints:
 
 from contextlib import asynccontextmanager
 from typing import List
+import shutil
+import os
+import pandas as pd
 
-from fastapi import FastAPI, HTTPException, Path
+from fastapi import FastAPI, HTTPException, Path, UploadFile, File, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.model import (
-    train_pipeline,
+    init_pipeline,
     predict_cluster,
     get_global_shap,
     get_cluster_shap,
@@ -41,17 +44,30 @@ from api.schemas import (
 
 
 # ─────────────────────────────────────────
+#  KEAMANAN & AUTENTIKASI
+# ─────────────────────────────────────────
+
+API_KEY_SECRET = "skripsi123"
+
+def verify_api_key(x_api_key: str = Header(..., description="API Key untuk akses admin")):
+    """Dependency untuk memverifikasi API Key pada endpoint krusial."""
+    if x_api_key != API_KEY_SECRET:
+        raise HTTPException(status_code=401, detail="API Key tidak valid atau tidak diberikan.")
+    return x_api_key
+
+
+# ─────────────────────────────────────────
 #  LIFESPAN (training saat startup)
 # ─────────────────────────────────────────
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Jalankan training pipeline sekali saat server pertama kali start."""
+    """Inisialisasi pipeline sekali saat server pertama kali start."""
     print("=" * 55)
     print("  Diskominfo SKM — Clustering & SHAP REST API")
-    print("  [INFO] Memulai training pipeline...")
+    print("  [INFO] Menginisialisasi pipeline (memuat dari cache atau melatih baru)...")
     print("=" * 55)
-    train_pipeline(csv_path=CSV_PATH)
+    init_pipeline(csv_path=CSV_PATH)
     print("=" * 55)
     print("[API] Training pipeline selesai. API siap menerima request.")
     print("[API] Dokumentasi: http://localhost:8000/docs")
@@ -142,6 +158,81 @@ async def model_info():
     if info.get("status") == "not_trained":
         raise HTTPException(status_code=503, detail="Model belum dilatih.")
     return info
+
+
+@app.post(
+    "/model/retrain",
+    summary="Latih Ulang Model",
+    tags=["Model"],
+    response_model=dict,
+)
+async def retrain_model(_: str = Depends(verify_api_key)):
+    """
+    Memaksa model untuk berlatih ulang dari awal membaca file CSV.
+    Berguna jika data survei (CSV) diperbarui secara manual.
+    **Wajib menyertakan x-api-key di header.**
+    """
+    try:
+        init_pipeline(force_retrain=True)
+        return {"message": "Model berhasil dilatih ulang dan disimpan ke cache."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Gagal melatih ulang: {str(e)}")
+
+
+@app.post(
+    "/data/upload_and_retrain",
+    summary="Upload Data Baru & Latih Ulang",
+    tags=["Model"],
+    response_model=dict,
+)
+async def upload_and_retrain(
+    file: UploadFile = File(..., description="File CSV terbaru dari sistem survei"),
+    _: str = Depends(verify_api_key)
+):
+    """
+    Endpoint khusus Admin untuk mengunggah file CSV terbaru.
+    - File harus berekstensi .csv
+    - Format separator disarankan titik koma (;) sesuai data awal.
+    - File akan otomatis menimpa data lama dan memicu pelatihan ulang model.
+    **Wajib menyertakan x-api-key di header.**
+    """
+    if not file.filename.endswith(".csv"):
+        raise HTTPException(status_code=400, detail="File harus berformat .csv")
+        
+    temp_file_path = f"temp_{file.filename}"
+    
+    try:
+        # Simpan file sementara
+        with open(temp_file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        # Validasi format sederhana dengan pandas
+        try:
+            df_test = pd.read_csv(temp_file_path, sep=";", on_bad_lines="skip")
+            # Minimal harus memiliki sejumlah kolom yang cukup
+            if len(df_test.columns) < 15:
+                raise ValueError("Jumlah kolom kurang dari ekspektasi (minimal 15 kolom).")
+        except Exception as ve:
+            raise HTTPException(status_code=400, detail=f"Validasi isi file gagal: {str(ve)}")
+            
+        # Timpa file CSV asli
+        shutil.move(temp_file_path, CSV_PATH)
+        
+        # Jalankan retraining
+        init_pipeline(force_retrain=True)
+        
+        return {
+            "message": "Data berhasil diperbarui dan model telah dilatih ulang.",
+            "filename": file.filename
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Terjadi kesalahan internal: {str(e)}")
+    finally:
+        # Hapus temp file jika masih ada
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
 
 
 # ─────────────────────────────────────────

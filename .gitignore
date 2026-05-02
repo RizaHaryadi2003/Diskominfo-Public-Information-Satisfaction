@@ -1,0 +1,16 @@
+# Python Virtual Environment
+venv/
+env/
+.venv/
+
+# Pycache
+__pycache__/
+*.py[cod]
+
+# Model Artifacts (Do not track large binaries)
+api/model_artifacts.joblib
+temp_*.csv
+
+# OS generated files
+.DS_Store
+Thumbs.db

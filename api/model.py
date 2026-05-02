@@ -12,6 +12,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.ensemble import RandomForestClassifier
 import shap
+import joblib
 from typing import Dict, List, Tuple
 
 
@@ -52,6 +53,7 @@ Q_LABELS: Dict[str, str] = {
 # Path CSV relatif terhadap direktori Project
 _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CSV_PATH = os.path.join(_BASE_DIR, "Data-Responden (1).csv")
+MODEL_ARTIFACT_PATH = os.path.join(_BASE_DIR, "api", "model_artifacts.joblib")
 
 # Jumlah cluster final (ditentukan dari analisis Elbow + Silhouette)
 N_CLUSTERS = 3
@@ -98,6 +100,79 @@ _store = ModelStore()
 def get_store() -> ModelStore:
     """Dependency injection helper untuk FastAPI."""
     return _store
+
+
+# ─────────────────────────────────────────
+#  MODEL SERIALIZATION (CACHE)
+# ─────────────────────────────────────────
+
+def save_model(path: str = MODEL_ARTIFACT_PATH) -> None:
+    """Simpan state _store ke file joblib."""
+    global _store
+    if not _store.is_trained:
+        print("[ModelCache] Model belum dilatih, tidak ada yang disimpan.")
+        return
+
+    state = {
+        "df": _store.df,
+        "X": _store.X,
+        "X_scaled": _store.X_scaled,
+        "scaler": _store.scaler,
+        "kmeans": _store.kmeans,
+        "rf": _store.rf,
+        "explainer": _store.explainer,
+        "shap_values": _store.shap_values,
+        "global_shap": _store.global_shap,
+        "cluster_shap": _store.cluster_shap,
+        "silhouette": _store.silhouette,
+        "cluster_counts": _store.cluster_counts,
+    }
+    
+    try:
+        joblib.dump(state, path)
+        print(f"[ModelCache] Berhasil menyimpan model ke: {path}")
+    except Exception as e:
+        print(f"[ModelCache] Gagal menyimpan model: {e}")
+
+
+def load_model(path: str = MODEL_ARTIFACT_PATH) -> bool:
+    """Muat state _store dari file joblib."""
+    global _store
+    if not os.path.exists(path):
+        return False
+        
+    try:
+        print(f"[ModelCache] Memuat model dari: {path}...")
+        state = joblib.load(path)
+        
+        _store.df = state["df"]
+        _store.X = state["X"]
+        _store.X_scaled = state["X_scaled"]
+        _store.scaler = state["scaler"]
+        _store.kmeans = state["kmeans"]
+        _store.rf = state["rf"]
+        _store.explainer = state["explainer"]
+        _store.shap_values = state["shap_values"]
+        _store.global_shap = state["global_shap"]
+        _store.cluster_shap = state["cluster_shap"]
+        _store.silhouette = state["silhouette"]
+        _store.cluster_counts = state["cluster_counts"]
+        _store.is_trained = True
+        
+        print("[ModelCache] Berhasil memuat model dari cache.")
+        return True
+    except Exception as e:
+        print(f"[ModelCache] Gagal memuat model: {e}")
+        return False
+
+
+def init_pipeline(csv_path: str = CSV_PATH, force_retrain: bool = False) -> None:
+    """
+    Inisialisasi pipeline. Jika force_retrain=False dan cache ada, muat dari cache.
+    Jika tidak, latih dari awal.
+    """
+    if force_retrain or not load_model():
+        train_pipeline(csv_path)
 
 
 # ─────────────────────────────────────────
@@ -235,6 +310,9 @@ def train_pipeline(csv_path: str = CSV_PATH) -> None:
         f"n={len(df)}, silhouette={sil:.4f}, "
         f"distribusi={_store.cluster_counts}"
     )
+    
+    # Simpan model ke disk setelah training selesai
+    save_model()
 
 
 # ─────────────────────────────────────────
