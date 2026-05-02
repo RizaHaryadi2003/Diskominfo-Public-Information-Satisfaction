@@ -14,3 +14,6 @@ temp_*.csv
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Abaikan README.md agar bisa di-edit manual di GitHub
+README.md
