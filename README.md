@@ -1,11 +1,23 @@
-# Analisis Segmentasi Kepuasan Masyarakat
-### Pengelolaan Informasi Publik — Diskominfo Provinsi Kalimantan Barat
+# 📊 Analisis Segmentasi Kepuasan Masyarakat (Diskominfo)
 
-Proyek skripsi yang menganalisis kepuasan masyarakat terhadap pengelolaan informasi publik menggunakan **K-Means Clustering** dan **SHAP Explainability**.
+*A Data-Driven Machine Learning Framework for Evaluating Community Satisfaction in West Kalimantan.*
+
+Proyek skripsi ini menganalisis kepuasan masyarakat terhadap pengelolaan informasi publik menggunakan **K-Means Clustering** dan **SHAP Explainability**, serta menyediakan **REST API** untuk prediksi secara *real-time*.
 
 ---
 
-## Struktur Proyek
+## 🧠 Overview & Objectives
+
+Dalam konteks pemerintahan digital, analisis survei tradisional seringkali hanya berhenti pada statistik deskriptif. Penelitian ini melangkah lebih jauh dengan mengungkap **pola perilaku tersembunyi**, mengidentifikasi **faktor utama ketidakpuasan**, dan mengubah data survei mentah menjadi **wawasan kebijakan yang dapat ditindaklanjuti**.
+
+Tujuan utama penelitian ini:
+- Mensegmentasi tingkat kepuasan masyarakat menggunakan *clustering* berbasis data.
+- Mengidentifikasi faktor paling berpengaruh terhadap kepuasan.
+- Memberikan penjelasan yang dapat diinterpretasi (*interpretable insights*) untuk perbaikan kebijakan dan sistem.
+
+---
+
+## 📁 Struktur Proyek
 
 ```
 Project/
@@ -18,147 +30,69 @@ Project/
     ├── main.py           # FastAPI application
     ├── model.py          # Pipeline ML (ModelStore singleton)
     ├── schemas.py        # Pydantic request/response schemas
-    └── requirements.txt  # Dependensi Python
+    └── requirements.txt  # Dependensi Python & API
 ```
 
 ---
 
-## Script Analisis (`diskominfo_public_information_satisfaction.py`)
+## 💻 Cara Menjalankan Aplikasi (REST API)
 
-Script penelitian lengkap yang memuat alur kerja:
+API dibangun menggunakan **FastAPI** yang mengekspos model K-Means + SHAP. Model dioptimalkan dengan *caching* (`.joblib`) dan mendukung *retrain* data secara dinamis.
 
-| # | Seksi | Deskripsi |
-|---|-------|-----------|
-| 1 | Load & Preprocessing | Muat CSV, rename kolom |
-| 2 | Cleaning | Drop kolom tidak relevan, pisahkan fitur |
-| 3 | Normalisasi | StandardScaler (Z-score) |
-| 4 | EDA | Rata-rata skor per pertanyaan |
-| 5 | K-Means: Elbow + Silhouette | Penentuan K optimal |
-| 6 | Final Clustering K=3 | Labeling cluster |
-| 7 | Demografi per Cluster | Profil demografis tiap segmen |
-| 8 | Validasi Kruskal-Wallis | Uji statistik perbedaan antar cluster |
-| 9 | Random Forest Surrogate | Classifier + 5-Fold CV |
-| 10 | SHAP Explainability | Kalkulasi SHAP values |
-| 11 | Priority Matrix | Quadrant analysis (Impact vs Performance) |
-| 12 | Inferensi Real-Time | Fungsi prediksi responden baru |
-| 13 | Heatmap Korelasi | Korelasi antar Q1–Q15 |
-| 14 | Distribusi Index | Histogram kepuasan per cluster |
-| 15 | Radar Chart | Profil cluster multidimensi |
-| 16 | Analisis per Dimensi | Grouped bar chart dimensi informasi |
-| 17 | Gap Analysis | Performa vs target ideal (85) |
-
-### Cara Menjalankan
-
+### 1. Install Dependensi
+Karena proyek ini menggunakan banyak pustaka, **sangat disarankan menggunakan Virtual Environment**.
 ```bash
-# Pastikan dependensi terinstall
+python -m venv venv
+.\venv\Scripts\activate
 pip install -r api/requirements.txt
-
-# Jalankan script analisis
-python diskominfo_public_information_satisfaction.py
 ```
 
----
-
-## REST API (`api/`)
-
-FastAPI yang mengekspos model K-Means + SHAP untuk prediksi real-time.
-
-### Cara Menjalankan API
-
+### 2. Jalankan Server
 ```powershell
-# Set encoding (Windows)
 $env:PYTHONIOENCODING='utf-8'
-
-# Jalankan server
 python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-
-Server berjalan di: **http://127.0.0.1:8000**
-
-### Endpoints
-
-| Method | Endpoint | Deskripsi |
-|--------|----------|-----------|
-| `GET` | `/` | Health check & status API |
-| `GET` | `/model/info` | Status model, metrik silhouette, distribusi cluster |
-| `POST` | `/predict` | Prediksi cluster + SHAP untuk responden baru |
-| `GET` | `/shap/global` | Global SHAP feature importance |
-| `GET` | `/shap/cluster/{0\|1\|2}` | SHAP feature importance per cluster |
-| `GET` | `/clusters` | Profil rata-rata semua cluster |
-
-### Contoh Request `POST /predict`
-
-```json
-{
-  "Q1": 75, "Q2": 70, "Q3": 80, "Q4": 65, "Q5": 85,
-  "Q6": 90, "Q7": 75, "Q8": 70, "Q9": 80, "Q10": 60,
-  "Q11": 75, "Q12": 85, "Q13": 70, "Q14": 80, "Q15": 65
-}
-```
-
-### Contoh Response
-
-```json
-{
-  "cluster_id": 0,
-  "cluster_name": "Puas Merata",
-  "confidence": 0.87,
-  "shap_values": { "Q1": 0.045, "Q2": -0.012, ... }
-}
-```
-
-### Dokumentasi Interaktif
-
-Buka browser di: **http://127.0.0.1:8000/docs** (Swagger UI)
+Buka dokumentasi interaktif di browser: **http://127.0.0.1:8000/docs**
 
 ---
 
-## Test Pipeline (tanpa server)
+## 🔄 End-to-End Data Science Pipeline
 
-```bash
-python test_api.py
-```
+Proyek ini dibangun di atas 10 tahapan *pipeline* untuk memastikan ketahanan dan interpretabilitas:
+1. **Data Acquisition**: Mengumpulkan data (Q1-Q15) dari layanan informasi.
+2. **EDA**: Memahami distribusi data dan anomali.
+3. **Preprocessing**: Pembersihan data dan penanganan *missing values*.
+4. **Feature Engineering**: Memilih fitur yang memengaruhi Indeks Kepuasan.
+5. **Standardization**: Menggunakan `StandardScaler` (Z-score).
+6. **Optimal Cluster Determination**: Menggunakan *Elbow Method* & *Silhouette Score*.
+7. **Unsupervised Clustering (K-Means)**: Mensegmentasi populasi.
+8. **Model Validation (Random Forest)**: Melatih model *surrogate* untuk memvalidasi konsistensi.
+9. **Explainable AI (SHAP)**: Menginterpretasikan pendorong kepuasan secara global dan individual.
+10. **Insight Generation**: Mengubah *output* menjadi rekomendasi strategis SIKEDIP.
 
 ---
 
-## Segmentasi Cluster
+## 📈 Segmentasi Cluster & Key Findings
 
 | Cluster | Nama | Interpretasi |
 |---------|------|--------------|
-| 0 | Puas Merata | Kepuasan tinggi dan konsisten di semua dimensi |
-| 1 | Puas Tidak Merata | Kepuasan tinggi tapi tidak konsisten antar dimensi |
-| 2 | Kurang Puas | Kepuasan rendah, perlu intervensi prioritas |
+| **0** | Puas Merata | Kepuasan tinggi dan konsisten di semua dimensi. |
+| **1** | Puas Tidak Merata | Kepuasan tinggi tapi tidak konsisten antar dimensi. |
+| **2** | Kurang Puas | Kepuasan rendah, perlu intervensi prioritas. |
+
+**Temuan Utama:**
+- **Aksesibilitas Digital (Q10)** adalah pendorong utama (*primary driver*). Kemudahan akses sistem sangat memengaruhi kepuasan.
+- **Profesionalisme Staf (Q15)** adalah pendorong sekunder.
+Ini membuktikan bahwa kombinasi **kegunaan teknologi + interaksi manusia** mendefinisikan kepuasan layanan Diskominfo.
 
 ---
 
-## Dependensi Utama
+## ⚠️ Keterbatasan Model & Future Work
 
-```
-fastapi, uvicorn, pandas, scikit-learn, shap, numpy, pydantic, seaborn, matplotlib
-```
+Model ini saat ini masih berskala penelitian dan belum sepenuhnya siap pakai untuk keputusan final tingkat produksi berskala besar. 
+**Alasan:** Model ini dilatih menggunakan dataset yang terbatas (Survei SKM 2023-2026 sejumlah 477 responden). 
 
-Install semua:
-```bash
-pip install -r api/requirements.txt
-```
-
----
-
-## Dataset
-
-- **Sumber**: Survei Kepuasan Masyarakat (SKM) SIKEDIP 2023–2026
-- **Jumlah**: 477 responden
-- **Fitur**: Q1–Q15 (skor kepuasan 0–100 per dimensi layanan informasi)
-
-## How to Run
-
--- $env:PYTHONIOENCODING='utf-8'; python test_api.py
-
---$env:PYTHONIOENCODING='utf-8'; python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
-
-## Model ini belum siap pakai karena beberapa alasan sistem dan data
-
-## Alasan: Model ini dibuat bedasarkan data yang terbatas dimana saya hanya menggunakan data SKM terhadap Informasi Publik tahun 2023-2026 yang hanya berjumlah 477 responden. dalam penerapan model ML yang optimal untuk memberikan keputusan di haruskan mendapatkan data yang sangat banyak beberapa opsi yang perlu di pertimbangkan 
-1. Data Oprasional (Transaction Log ) 
-2. Lanjut Melakukan Riset Data Menggunakan Metode Kualitatif 
-3. 
+Untuk penerapan optimal di masa depan, pertimbangkan:
+1. Menambahkan **Data Operasional (Transaction Log)** dari sistem SIKEDIP.
+2. Melakukan riset lanjutan menggunakan metode Kualitatif.
+3. Membangun *background task* (seperti Celery) untuk proses *retrain* agar API tidak memblokir saat data membesar.
