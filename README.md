@@ -1,8 +1,8 @@
 # 📊 Analisis Segmentasi Kepuasan Masyarakat (Diskominfo)
 
-*A Data-Driven Machine Learning Framework for Evaluating Community Satisfaction in West Kalimantan.*
+*A Secure, Data-Driven Machine Learning Framework for Evaluating Community Satisfaction in West Kalimantan.*
 
-Proyek skripsi ini menganalisis kepuasan masyarakat terhadap pengelolaan informasi publik menggunakan **K-Means Clustering** dan **SHAP Explainability**, serta menyediakan **REST API** untuk prediksi secara *real-time*.
+Proyek skripsi ini menganalisis kepuasan masyarakat terhadap pengelolaan informasi publik menggunakan **K-Means Clustering** dan **SHAP Explainability**. Sistem ini juga menyediakan **REST API** interaktif untuk prediksi *real-time* dan pengelolaan data berkelanjutan (MLOps) dengan standar privasi yang ketat.
 
 ---
 
@@ -10,89 +10,150 @@ Proyek skripsi ini menganalisis kepuasan masyarakat terhadap pengelolaan informa
 
 Dalam konteks pemerintahan digital, analisis survei tradisional seringkali hanya berhenti pada statistik deskriptif. Penelitian ini melangkah lebih jauh dengan mengungkap **pola perilaku tersembunyi**, mengidentifikasi **faktor utama ketidakpuasan**, dan mengubah data survei mentah menjadi **wawasan kebijakan yang dapat ditindaklanjuti**.
 
-Tujuan utama penelitian ini:
-- Mensegmentasi tingkat kepuasan masyarakat menggunakan *clustering* berbasis data.
-- Mengidentifikasi faktor paling berpengaruh terhadap kepuasan.
-- Memberikan penjelasan yang dapat diinterpretasi (*interpretable insights*) untuk perbaikan kebijakan dan sistem.
+**Tujuan Utama:**
+- Mensegmentasi tingkat kepuasan masyarakat menggunakan algoritma *clustering* tanpa pengawasan (Unsupervised Learning).
+- Mengidentifikasi faktor (pertanyaan survei) yang paling berpengaruh terhadap kepuasan.
+- Memberikan *Interpretable Insights* menggunakan **Explainable AI (SHAP)** untuk transparansi keputusan AI.
+- Membangun REST API yang siap diimplementasikan (*deployment-ready*) untuk Diskominfo.
+
+---
+
+## 🔒 Keamanan & Privasi Data (Data Anonymization)
+
+Mengingat dataset mengandung *Personally Identifiable Information* (PII) atau identitas pribadi responden, proyek ini menerapkan standar **Data Anonymization** tingkat produksi.
+
+- Data asli dari pemerintah (Diskominfo) **TIDAK** disertakan dalam repositori ini demi menjaga kerahasiaan.
+- **Pipeline Anonimisasi:** Kami menggunakan *script* otomatis (`scripts/anonymize.py`) untuk memproses data mentah, menghapus atribut sensitif (seperti Nama dan Nomor HP), dan menghasilkan dataset yang aman (`Data-Aman.csv`).
+- Model Machine Learning **hanya dilatih menggunakan data yang sudah dianonimkan**, sehingga menjamin 100% keamanan privasi responden apabila *source code* ini dikembangkan oleh *developer* selanjutnya.
 
 ---
 
 ## 📁 Struktur Proyek
 
-```
+```text
 Project/
-├── Data-Responden (1).csv                         # Dataset survei SKM SIKEDIP 2023-2026
-├── diskominfo_public_information_satisfaction.py  # Script analisis lengkap (Jupyter/Python)
-├── test_api.py                                    # Test pipeline ML tanpa server HTTP
-├── README.md                                      # Dokumentasi ini
-└── api/
-    ├── __init__.py
-    ├── main.py           # FastAPI application
-    ├── model.py          # Pipeline ML (ModelStore singleton)
-    ├── schemas.py        # Pydantic request/response schemas
-    └── requirements.txt  # Dependensi Python & API
+├── api/
+│   ├── main.py           # Endpoint aplikasi FastAPI & konfigurasi server
+│   ├── model.py          # Logika Machine Learning, Training, & Caching Model
+│   ├── schemas.py        # Pydantic Schema (Request/Response validation)
+│   └── requirements.txt  # Daftar pustaka Python yang dibutuhkan
+├── data/
+│   ├── raw/              # (Diabaikan Git) Tempat meletakkan CSV rahasia dari Diskominfo
+│   └── processed/        # Tempat menyimpan 'Data-Aman.csv' yang sudah bersih
+├── scripts/
+│   └── anonymize.py      # Script otomatis untuk membuang identitas dari raw ke processed
+├── diskominfo_public_information_satisfaction.py  # Script dasar (Eksperimen awal)
+├── test_api.py                                    # Pengujian pipeline ML secara lokal
+├── .env.example                                   # Template Environment Variables
+└── README.md                                      # Dokumentasi Proyek
 ```
 
 ---
 
-## 💻 Cara Menjalankan Aplikasi (REST API)
+## 💻 Instalasi & Persiapan Lingkungan
 
-API dibangun menggunakan **FastAPI** yang mengekspos model K-Means + SHAP. Model dioptimalkan dengan *caching* (`.joblib`) dan mendukung *retrain* data secara dinamis.
+Proyek ini menggunakan **Python 3.10+**. Sangat disarankan untuk menggunakan *Virtual Environment* (venv) agar pustaka tidak bentrok dengan proyek lain di komputer Anda.
 
-### 1. Install Dependensi
-Karena proyek ini menggunakan banyak pustaka, **sangat disarankan menggunakan Virtual Environment**.
+### 1. Clone & Setup Environment
 ```bash
+# Clone repositori (jika di-hosting)
+git clone https://github.com/username/repo-anda.git
+cd repo-anda
+
+# Buat dan aktifkan Virtual Environment
 python -m venv venv
+
+# Windows:
 .\venv\Scripts\activate
+# Mac/Linux:
+source venv/bin/activate
+
+# Install semua dependensi
 pip install -r api/requirements.txt
 ```
 
-### 2. Jalankan Server
-```powershell
+### 2. Konfigurasi Environment (Opsional)
+Salin file template `.env` jika Anda ingin mengkustomisasi path pembacaan CSV secara manual:
+```bash
+cp .env.example .env
+```
+
+### 3. Persiapan Data (Bagi Pengembang Lanjutan)
+Jika Anda memiliki data baru dari *web scraper* SIKEDIP:
+1. Masukkan file mentah berformat `.csv` ke dalam folder `data/raw/`.
+2. Jalankan script anonimisasi:
+   ```bash
+   python scripts/anonymize.py
+   ```
+3. File akan diproses menjadi `data/processed/Data-Aman.csv` dan siap digunakan oleh Model.
+
+---
+
+## 🚀 Cara Menjalankan REST API
+
+Setelah instalasi selesai, jalankan server **Uvicorn** melalui terminal:
+
+```bash
+# Set encoding (Khusus pengguna Windows PowerShell)
 $env:PYTHONIOENCODING='utf-8'
+
+# Jalankan server
 python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-Buka dokumentasi interaktif di browser: **http://127.0.0.1:8000/docs**
+
+Akses Dokumentasi API Interaktif (*Swagger UI*):
+👉 **http://127.0.0.1:8000/docs**
 
 ---
 
-## 🔄 End-to-End Data Science Pipeline
+## 🔑 Endpoint API & Autentikasi
 
-Proyek ini dibangun di atas 10 tahapan *pipeline* untuk memastikan ketahanan dan interpretabilitas:
-1. **Data Acquisition**: Mengumpulkan data (Q1-Q15) dari layanan informasi.
-2. **EDA**: Memahami distribusi data dan anomali.
-3. **Preprocessing**: Pembersihan data dan penanganan *missing values*.
-4. **Feature Engineering**: Memilih fitur yang memengaruhi Indeks Kepuasan.
-5. **Standardization**: Menggunakan `StandardScaler` (Z-score).
-6. **Optimal Cluster Determination**: Menggunakan *Elbow Method* & *Silhouette Score*.
-7. **Unsupervised Clustering (K-Means)**: Mensegmentasi populasi.
-8. **Model Validation (Random Forest)**: Melatih model *surrogate* untuk memvalidasi konsistensi.
-9. **Explainable AI (SHAP)**: Menginterpretasikan pendorong kepuasan secara global dan individual.
-10. **Insight Generation**: Mengubah *output* menjadi rekomendasi strategis SIKEDIP.
+Semua *endpoint* baca (GET) dan prediksi (POST `/predict`) bersifat **publik**. 
+Namun, *endpoint* administratif untuk memperbarui data dan melatih ulang model membutuhkan **API Key**.
 
----
+**API Key Default:** `skripsi123`  
+*(Cara pakai di Swagger UI: Klik 'Try it out', lalu masukkan kata sandi di kotak `x-api-key` sebelum mengeksekusi).*
 
-## 📈 Segmentasi Cluster & Key Findings
-
-| Cluster | Nama | Interpretasi |
-|---------|------|--------------|
-| **0** | Puas Merata | Kepuasan tinggi dan konsisten di semua dimensi. |
-| **1** | Puas Tidak Merata | Kepuasan tinggi tapi tidak konsisten antar dimensi. |
-| **2** | Kurang Puas | Kepuasan rendah, perlu intervensi prioritas. |
-
-**Temuan Utama:**
-- **Aksesibilitas Digital (Q10)** adalah pendorong utama (*primary driver*). Kemudahan akses sistem sangat memengaruhi kepuasan.
-- **Profesionalisme Staf (Q15)** adalah pendorong sekunder.
-Ini membuktikan bahwa kombinasi **kegunaan teknologi + interaksi manusia** mendefinisikan kepuasan layanan Diskominfo.
+| Method | Endpoint | Deskripsi | Auth |
+|--------|----------|-----------|------|
+| **GET** | `/` | Pengecekan status server (*Health Check*). | ❌ |
+| **GET** | `/model/info` | Melihat metrik performa model (Silhouette Score) & hyperparameter. | ❌ |
+| **POST** | `/predict` | Memprediksi kelompok (*cluster*) kepuasan responden baru. | ❌ |
+| **GET** | `/shap/global` | Menampilkan faktor pelayanan yang secara umum paling berpengaruh. | ❌ |
+| **GET** | `/clusters` | Menampilkan ringkasan profil & rata-rata indeks tiap *cluster*. | ❌ |
+| **POST** | `/data/upload_and_retrain` | Mengunggah CSV baru dan langsung melatih ulang (*Retrain*) model AI. | 🔒 **Ya** |
+| **POST** | `/model/retrain` | Memaksa sistem melatih ulang model dari data lokal yang ada. | 🔒 **Ya** |
 
 ---
 
-## ⚠️ Keterbatasan Model & Future Work
+## 🔄 End-to-End MLOps Pipeline
 
-Model ini saat ini masih berskala penelitian dan belum sepenuhnya siap pakai untuk keputusan final tingkat produksi berskala besar. 
-**Alasan:** Model ini dilatih menggunakan dataset yang terbatas (Survei SKM 2023-2026 sejumlah 477 responden). 
+Proyek ini dibangun di atas fondasi otomasi AI (*MLOps*) dengan tahapan berikut:
+1. **Data Ingestion**: Menerima file CSV dari unggahan Admin atau *Local Directory*.
+2. **Anonymization**: Menghilangkan *Personally Identifiable Information* (PII).
+3. **Preprocessing**: Normalisasi *Z-Score* menggunakan `StandardScaler`.
+4. **K-Means Clustering**: Membagi masyarakat ke dalam segmentasi yang tersembunyi.
+5. **Surrogate Modeling**: Melatih Random Forest Classifier di atas label *clustering* untuk menangkap logika prediksi matematis.
+6. **SHAP Explainability**: Menggunakan *TreeExplainer* untuk membedah *black-box* Random Forest agar AI dapat menjelaskan "Kenapa orang ini masuk ke cluster tertentu?".
+7. **Model Caching**: Menyimpan artefak model ke bentuk `.joblib` agar API merespon dalam satuan milidetik tanpa harus melatih ulang.
 
-Untuk penerapan optimal di masa depan, pertimbangkan:
-1. Menambahkan **Data Operasional (Transaction Log)** dari sistem SIKEDIP.
-2. Melakukan riset lanjutan menggunakan metode Kualitatif.
-3. Membangun *background task* (seperti Celery) untuk proses *retrain* agar API tidak memblokir saat data membesar.
+---
+
+## 📈 Key Findings (Hasil Segmentasi)
+
+Berdasarkan dataset uji:
+| ID | Cluster | Interpretasi Karakteristik |
+|---|---|---|
+| **0** | **Puas Merata** | Memberikan nilai tinggi dan sangat konsisten di semua instrumen survei. |
+| **1** | **Puas Tidak Merata** | Secara garis besar puas, namun ada beberapa poin instrumen yang dinilai kurang maksimal. |
+| **2** | **Kurang Puas** | Responden yang merasa kecewa pada sebagian besar pelayanan informasi. Harus menjadi target intervensi utama. |
+
+**Insight Pendorong Kepuasan (SHAP):**
+Faktor **Aksesibilitas Digital (Q10)** merupakan pendorong paling kritis yang menentukan apakah seseorang akan berada di *Cluster* Puas atau Tidak. Sedangkan faktor **Profesionalisme Staf (Q15)** berperan sebagai pendorong krusial kedua. Ini menegaskan bahwa sinergi *Sistem IT + Pelayanan Manusia* adalah kunci utama kepuasan masyarakat.
+
+---
+
+## 🎓 Kontak & Kredit
+**Peneliti:** Riza Haryadi  
+**Email:** rizaharyadi13@gmail.com  
+Proyek ini diajukan sebagai bagian dari tugas akhir (Skripsi). Jika ada pertanyaan mengenai implementasi arsitektur atau adopsi teknologi ini untuk instansi Anda, silakan hubungi via email di atas.
