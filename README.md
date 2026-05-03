@@ -57,7 +57,7 @@ Proyek ini menggunakan **Python 3.10+**. Sangat disarankan untuk menggunakan *Vi
 ### 1. Clone & Setup Environment
 ```bash
 # Clone repositori (jika di-hosting)
-git clone https://github.com/username/repo-anda.git
+git clone https://github.com/RizaHaryadi2003/Diskominfo-Public-Information-Satisfaction.git
 cd repo-anda
 
 # Buat dan aktifkan Virtual Environment
