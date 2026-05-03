@@ -17,3 +17,7 @@ Thumbs.db
 
 # Abaikan README.md agar bisa di-edit manual di GitHub
 README.md
+
+# Ignore Sensitive Data and Environment Variables
+data/raw/
+.env

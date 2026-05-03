@@ -12,7 +12,6 @@ Cell ini berfungsi untuk mengkonsolidasikan semua pernyataan `import` dari berba
 """
 
 import pandas as pd
-from google.colab import drive
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -24,12 +23,11 @@ import numpy as np
 import matplotlib.patches as mpatches
 from matplotlib.patches import FancyArrowPatch
 import scipy.stats as stats
+from IPython.display import display
 
 #=====LOAD & RENAME=====#
 
-drive.mount('/content/drive')
-
-df = pd.read_csv('/content/drive/MyDrive/Projects/Skripsi/Data-Responden-Website-SIKEDIP/Data-Responden.csv',
+df = pd.read_csv('Data-Responden (1).csv',
                  sep=';',
                  on_bad_lines='skip')
 
@@ -105,7 +103,7 @@ plt.show()
 Cell ini melakukan analisis data eksplorasi untuk memahami distribusi skor rata-rata pada setiap pertanyaan (Q1-Q15). Visualisasi menggunakan *bar chart* horizontal ini membantu mengidentifikasi pertanyaan mana yang memiliki skor kepuasan tinggi dan rendah, serta rata-rata keseluruhan sebagai referensi.
 """
 
-_#===== Clustering K-Means =====#
+#===== Clustering K-Means =====#
 
 
 inertias = []

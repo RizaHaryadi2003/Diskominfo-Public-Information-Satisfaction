@@ -14,7 +14,10 @@ from sklearn.ensemble import RandomForestClassifier
 import shap
 import joblib
 from typing import Dict, List, Tuple
+from dotenv import load_dotenv
 
+# Muat variabel environment dari file .env (jika ada)
+load_dotenv()
 
 # ─────────────────────────────────────────
 #  KONSTANTA
@@ -50,9 +53,9 @@ Q_LABELS: Dict[str, str] = {
     "Q15": "Q15 — Pemprov Libatkan Masyarakat",
 }
 
-# Path CSV relatif terhadap direktori Project
+# Path CSV relatif terhadap direktori Project (atau bisa dioverride via environment variable)
 _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CSV_PATH = os.path.join(_BASE_DIR, "Data-Responden (1).csv")
+CSV_PATH = os.environ.get("DATA_CSV_PATH", os.path.join(_BASE_DIR, "data", "processed", "Data-Aman.csv"))
 MODEL_ARTIFACT_PATH = os.path.join(_BASE_DIR, "api", "model_artifacts.joblib")
 
 # Jumlah cluster final (ditentukan dari analisis Elbow + Silhouette)
